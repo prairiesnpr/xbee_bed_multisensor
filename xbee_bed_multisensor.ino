@@ -225,7 +225,7 @@ void SetClrAttr(uint8_t ep_id, uint16_t cluster_id, uint16_t color_x, uint16_t c
   Cluster lvl_clstr = end_point.GetCluster(LEVEL_CONTROL_CLUSTER_ID);
   attribute *lvl_attr = lvl_clstr.GetAttr(CURRENT_STATE);
   on_off_attr->SetValue(0x01);
-  zha.sendAttributeWriteRsp(ON_OFF_CLUSTER_ID, on_off_attr, ep_id, 1, 0x01, rqst_seq_id);
+  zha.sendAttributeCmdRsp(ON_OFF_CLUSTER_ID, on_off_attr, ep_id, 1, 0x01, rqst_seq_id);
 
   Serial.print("Clstr: ");
   Serial.println(cluster_id, HEX);
@@ -254,29 +254,24 @@ void SetLvlStAttr(uint8_t ep_id, uint16_t cluster_id, uint16_t attr_id, uint8_t 
   {
     if (value == 0x00 || value == 0x01)
     {
-      zha.sendAttributeWriteRsp(cluster_id, attr, ep_id, 1, value, rqst_seq_id);
+      zha.sendAttributeCmdRsp(cluster_id, attr, ep_id, 1, value, rqst_seq_id);
       attr->SetValue(value);
       set_led();
     }
     else
     {
-      Serial.print(F("Ukn SetAttr"));
+      Serial.print(F("Bad Val"));
     }
   }
   else if (cluster_id == LEVEL_CONTROL_CLUSTER_ID)
   {
-    zha.sendAttributeWriteRsp(cluster_id, attr, ep_id, 1, value, rqst_seq_id);
+    zha.sendAttributeCmdRsp(cluster_id, attr, ep_id, 1, value, rqst_seq_id);
     attr->SetValue(value);
     set_led();
   }
-  else if (cluster_id == ANALOG_IN_CLUSTER_ID)
-  {
-    zha.sendAttributeWriteRsp(cluster_id, attr, ep_id, 1, value, rqst_seq_id);
-    attr->SetFloatValue(value);
-  }
   else
   {
-    Serial.print(F("Ukn SetAttr"));
+    Serial.print(F("Ukn Cmd Attr"));
   }
 }
 
@@ -460,7 +455,7 @@ void zhaWriteAttr(ZBExplicitRxResponse &erx)
 
     Serial.print(F("Flt now: "));
     Serial.println(pv_attr->GetFloatValue(), 2);
-    zha.sendAttributeWriteRsp(ai_clstr.id, pv_attr, end_point.id, 1, 0x01, erx.getFrameData()[erx.getDataOffset() + 1]);
+    zha.sendAttributeWriteResp(ai_clstr.id, pv_attr, end_point.id, 1, 0x01, erx.getFrameData()[erx.getDataOffset() + 1]);
 
     uint8_t mem_loc;
     if (end_point.id == LBED_ENDPOINT)
