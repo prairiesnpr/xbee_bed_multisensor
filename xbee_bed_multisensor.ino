@@ -124,11 +124,10 @@ void update_temp()
       Serial.print(event.temperature);
       Serial.println(F("°C"));
       Cluster t_cluster = end_point.GetCluster(TEMP_CLUSTER_ID);
-      attribute *t_attr = t_cluster.GetAttr(CURRENT_STATE);
+      attribute *t_attr;
+      uint8_t attr_exists = t_cluster.GetAttr(&t_attr, CURRENT_STATE);
       int16_t cor_t = (int16_t)(event.temperature * 100.0);
       t_attr->SetValue(cor_t);
-      Serial.print((int16_t)t_attr->GetIntValue(0x00));
-      Serial.println(F("°C"));
       zha.sendAttributeRpt(t_cluster.id, t_attr, end_point.id, 1);
     }
 
@@ -143,7 +142,8 @@ void update_temp()
       Serial.print(event.relative_humidity);
       Serial.println(F("%"));
       Cluster h_cluster = end_point.GetCluster(HUMIDITY_CLUSTER_ID);
-      attribute *h_attr = h_cluster.GetAttr(CURRENT_STATE);
+      attribute *h_attr;
+      uint8_t attr_exists = h_cluster.GetAttr(&h_attr, CURRENT_STATE);
       uint16_t cor_h = (uint16_t)(event.relative_humidity * 100.0);
       h_attr->SetValue(cor_h);
       zha.sendAttributeRpt(h_cluster.id, h_attr, end_point.id, 1);
@@ -162,12 +162,21 @@ void set_led()
   // Get current brightness
   Endpoint end_point = zha.GetEndpoint(LIGHT_ENDPOINT);
   Cluster clr_clstr = end_point.GetCluster(COLOR_CLUSTER_ID);
-  attribute *clr_x_attr = clr_clstr.GetAttr(ATTR_CURRENT_X);
-  attribute *clr_y_attr = clr_clstr.GetAttr(ATTR_CURRENT_Y);
   Cluster lvl_clstr = end_point.GetCluster(LEVEL_CONTROL_CLUSTER_ID);
-  attribute *lvl_attr = lvl_clstr.GetAttr(CURRENT_STATE);
   Cluster on_off_clstr = end_point.GetCluster(ON_OFF_CLUSTER_ID);
-  attribute *on_off_attr = on_off_clstr.GetAttr(CURRENT_STATE);
+  uint8_t attr_exists;
+
+  attribute *clr_x_attr;
+  attr_exists = clr_clstr.GetAttr(&clr_x_attr, ATTR_CURRENT_X);
+  
+  attribute *clr_y_attr;
+  attr_exists = clr_clstr.GetAttr(&clr_y_attr, ATTR_CURRENT_Y);
+  
+  attribute *lvl_attr;
+  attr_exists = lvl_clstr.GetAttr(&lvl_attr, CURRENT_STATE);
+  
+  attribute *on_off_attr;
+  attr_exists = on_off_clstr.GetAttr(&on_off_attr, CURRENT_STATE);
 
   uint16_t color_x = clr_x_attr->GetIntValue(0x00);
   uint16_t color_y = clr_y_attr->GetIntValue(0x00);
@@ -202,6 +211,8 @@ void set_led()
     analogWrite(BLUE_PIN, result.b);
     analogWrite(RED_PIN, result.r);
     analogWrite(WHITE_PIN, result.w);
+    report_lvl_state();
+    report_color_state();
   }
   else
   {
@@ -218,12 +229,16 @@ void SetClrAttr(uint8_t ep_id, uint16_t cluster_id, uint16_t color_x, uint16_t c
   Endpoint end_point = zha.GetEndpoint(ep_id);
   Cluster cluster = end_point.GetCluster(cluster_id);
   attribute *attr;
+  uint8_t attr_exists;
 
-  Cluster on_off_clstr = end_point.GetCluster(ON_OFF_CLUSTER_ID);
-  attribute *on_off_attr = on_off_clstr.GetAttr(CURRENT_STATE);
+  cluster = end_point.GetCluster(ON_OFF_CLUSTER_ID);
+  attribute *on_off_attr;
+  attr_exists = cluster.GetAttr(&on_off_attr, CURRENT_STATE);
 
-  Cluster lvl_clstr = end_point.GetCluster(LEVEL_CONTROL_CLUSTER_ID);
-  attribute *lvl_attr = lvl_clstr.GetAttr(CURRENT_STATE);
+  cluster = end_point.GetCluster(LEVEL_CONTROL_CLUSTER_ID);
+  attribute *lvl_attr;
+  attr_exists = cluster.GetAttr(&lvl_attr, CURRENT_STATE);
+
   on_off_attr->SetValue(0x01);
   zha.sendAttributeCmdRsp(ON_OFF_CLUSTER_ID, on_off_attr, ep_id, 1, 0x01, rqst_seq_id);
 
@@ -231,9 +246,11 @@ void SetClrAttr(uint8_t ep_id, uint16_t cluster_id, uint16_t color_x, uint16_t c
   Serial.println(cluster_id, HEX);
   if (cluster_id == COLOR_CLUSTER_ID)
   {
-    attr = cluster.GetAttr(ATTR_CURRENT_X);
+    cluster = end_point.GetCluster(cluster_id);
+
+    attr_exists = cluster.GetAttr(&attr, ATTR_CURRENT_X);
     attr->SetValue(color_x);
-    attr = cluster.GetAttr(ATTR_CURRENT_Y);
+    attr_exists = cluster.GetAttr(&attr, ATTR_CURRENT_Y);
     attr->SetValue(color_y);
     set_led();
   }
@@ -247,7 +264,8 @@ void SetLvlStAttr(uint8_t ep_id, uint16_t cluster_id, uint16_t attr_id, uint8_t 
 {
   Endpoint end_point = zha.GetEndpoint(ep_id);
   Cluster cluster = end_point.GetCluster(cluster_id);
-  attribute *attr = cluster.GetAttr(attr_id);
+  attribute *attr;
+  uint8_t attr_exists = cluster.GetAttr(&attr, attr_id);
   Serial.print(F("Val: "));
   Serial.println(value, HEX);
   if (cluster_id == ON_OFF_CLUSTER_ID)
@@ -295,12 +313,37 @@ void send_inital_bed_state(uint8_t ep_id, uint8_t eeprom_loc)
 {
   Endpoint bed_end_point = zha.GetEndpoint(ep_id);
   Cluster bed_analog_out_cluster = bed_end_point.GetCluster(ANALOG_OUT_CLUSTER_ID);
-  attribute *bed_analog_out_attr = bed_analog_out_cluster.GetAttr(BINARY_PV_ATTR);
+  attribute *bed_analog_out_attr;
+  uint8_t attr_exists = bed_analog_out_cluster.GetAttr(&bed_analog_out_attr, BINARY_PV_ATTR);
 
   // Need to load the settings from EEPROM and save to the Analog Attr
   uint32_t bed_threshold = ReadInt(eeprom_loc);
   bed_analog_out_attr->SetValue(bed_threshold);
   zha.sendAttributeRpt(bed_analog_out_cluster.id, bed_analog_out_attr, bed_end_point.id, 1);
+}
+
+void report_color_state()
+{
+  Serial.println(F("RPT CLRS"));
+
+  Endpoint light_end_point = zha.GetEndpoint(LIGHT_ENDPOINT);
+  attribute *attr;
+  uint8_t attr_exists;
+  Cluster cluster = light_end_point.GetCluster(COLOR_CLUSTER_ID);
+  uint16_t color_ids[] = {ATTR_CURRENT_X, ATTR_CURRENT_Y};
+  attr_exists = cluster.GetAttr(&attr, ATTR_CURRENT_X);
+
+  zha.sendAttributeRptMult(&cluster, color_ids, 2, light_end_point.id, 1);
+}
+
+void report_lvl_state()
+{
+  Endpoint light_end_point = zha.GetEndpoint(LIGHT_ENDPOINT);
+  attribute *attr;
+  uint8_t attr_exists;
+  Cluster cluster = light_end_point.GetCluster(LEVEL_CONTROL_CLUSTER_ID);
+  attr_exists = cluster.GetAttr(&attr, CURRENT_STATE);
+  zha.sendAttributeRpt(cluster.id, attr, light_end_point.id, 1);
 }
 
 void send_inital_state()
@@ -309,34 +352,32 @@ void send_inital_state()
   send_inital_bed_state(RBED_ENDPOINT, RBED_EEPROM_LOC);
 
   Endpoint light_end_point = zha.GetEndpoint(LIGHT_ENDPOINT);
-  Cluster on_off_clstr = light_end_point.GetCluster(ON_OFF_CLUSTER_ID);
-  attribute *on_off_attr = on_off_clstr.GetAttr(CURRENT_STATE);
+  attribute *attr;
+  uint8_t attr_exists;
 
-  Cluster color_cluster = light_end_point.GetCluster(COLOR_CLUSTER_ID);
-  attribute *color_x_attr = color_cluster.GetAttr(ATTR_CURRENT_X);
-  attribute *color_y_attr = color_cluster.GetAttr(ATTR_CURRENT_Y);
-
-  Cluster lvl_clstr = light_end_point.GetCluster(LEVEL_CONTROL_CLUSTER_ID);
-  attribute *lvl_attr = lvl_clstr.GetAttr(CURRENT_STATE);
-
-  zha.sendAttributeRpt(on_off_clstr.id, on_off_attr, light_end_point.id, 1);
-  zha.sendAttributeRpt(lvl_clstr.id, lvl_attr, light_end_point.id, 1);
-  zha.sendAttributeRpt(color_cluster.id, color_x_attr, light_end_point.id, 1);
-  zha.sendAttributeRpt(color_cluster.id, color_y_attr, light_end_point.id, 1);
+  Cluster cluster = light_end_point.GetCluster(ON_OFF_CLUSTER_ID);
+  attr_exists = cluster.GetAttr(&attr, CURRENT_STATE);
+  zha.sendAttributeRpt(cluster.id, attr, light_end_point.id, 1);
+  report_lvl_state();
+  report_color_state();
 }
 
 bool update_bed_sensor(uint8_t pin, uint8_t ep_id)
 {
   float bed_voltage;
   float percent_change;
+  attribute *bed_binary_attr;
+  attribute *bed_analog_in_attr;
+  attribute *bed_analog_out_attr;
+  uint8_t attr_exists;
 
   Endpoint bed_end_point = zha.GetEndpoint(ep_id);
   Cluster bed_binary_cluster = bed_end_point.GetCluster(BINARY_INPUT_CLUSTER_ID);
-  attribute *bed_binary_attr = bed_binary_cluster.GetAttr(BINARY_PV_ATTR);
+  attr_exists = bed_binary_cluster.GetAttr(&bed_binary_attr, BINARY_PV_ATTR);
   Cluster bed_analog_in_cluster = bed_end_point.GetCluster(ANALOG_IN_CLUSTER_ID);
-  attribute *bed_analog_in_attr = bed_analog_in_cluster.GetAttr(BINARY_PV_ATTR);
+  attr_exists = bed_analog_in_cluster.GetAttr(&bed_analog_in_attr, BINARY_PV_ATTR);
   Cluster bed_analog_out_cluster = bed_end_point.GetCluster(ANALOG_OUT_CLUSTER_ID);
-  attribute *bed_analog_out_attr = bed_analog_out_cluster.GetAttr(BINARY_PV_ATTR);
+  attr_exists = bed_analog_out_cluster.GetAttr(&bed_analog_out_attr, BINARY_PV_ATTR);
 
   bed_voltage = analogRead(pin) * (REF_VOLTAGE / 1023.0);
   percent_change = abs((bed_analog_in_attr->GetFloatValue() - bed_voltage) / REF_VOLTAGE);
@@ -450,7 +491,8 @@ void zhaWriteAttr(ZBExplicitRxResponse &erx)
     Serial.println(a_val, 4);
 
     Cluster ai_clstr = end_point.GetCluster(erx.getClusterId());
-    attribute *pv_attr = ai_clstr.GetAttr(BINARY_PV_ATTR);
+    attribute *pv_attr;
+    uint8_t attr_exists = ai_clstr.GetAttr(&pv_attr, BINARY_PV_ATTR);
     pv_attr->SetFloatValue(a_val);
 
     Serial.print(F("Flt now: "));

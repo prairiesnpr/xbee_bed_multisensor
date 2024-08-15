@@ -11,6 +11,10 @@ constexpr uint8_t four_zero_byte[] = {0x00, 0x00, 0x00, 0x00};
 constexpr uint8_t bac_net_volts[] = {0x05, 0x00};
 constexpr uint8_t init_color_x[] = {0x74, 0x53};
 constexpr uint8_t init_color_y[] = {0x3F, 0x55};
+constexpr uint8_t color_cap[] = {0x08, 0x00};
+constexpr uint8_t color_mode[] = {0x01};
+constexpr uint8_t color_options[] = {0x00};
+constexpr uint8_t enh_color_mode[] = {0x01};
 
 // Reuse these to save SRAM
 constexpr char manufacturer[] = "iSilentLLC";
@@ -19,8 +23,7 @@ constexpr char rbed_model[] = "Right";
 constexpr char temp_model[] = "Temp";
 constexpr char light_model[] = "MasterBed Light";
 
-attribute
-BuildStringAtt(uint16_t a_id, char *value, uint8_t size, uint8_t a_type)
+attribute BuildStringAtt(uint16_t a_id, char *value, uint8_t size, uint8_t a_type)
 {
     uint8_t *value_t = (uint8_t *)value;
     return attribute(a_id, value_t, size, a_type, 0x01);
@@ -41,7 +44,7 @@ attribute out_of_service = attribute(OUT_OF_SERVICE, const_cast<uint8_t *>(one_z
 
 // These are costly, but help the ui
 // const attribute max_pv_attr = attribute(MAX_PV_ATTR, max_v, sizeof(max_v), ZCL_SINGLE, 0x01); // 3.3v
-attribute min_pv_attr = attribute(MIN_PV_ATTR, const_cast<uint8_t *>(four_zero_byte), sizeof(four_zero_byte), ZCL_SINGLE, 0x01); // 0.0v
+//attribute min_pv_attr = attribute(MIN_PV_ATTR, const_cast<uint8_t *>(four_zero_byte), sizeof(four_zero_byte), ZCL_SINGLE, 0x01); // 0.0v
 
 attribute lbed_basic_attr[]{
     manuf_attr,
@@ -66,16 +69,20 @@ attribute light_bool_attr[]{
 attribute light_level_attr[]{
     {CURRENT_STATE, const_cast<uint8_t *>(one_max_byte), sizeof(one_zero_byte), ZCL_UINT8_T}};
 attribute light_color_attr[] = {
-    {ATTR_CURRENT_X, const_cast<uint8_t *>(init_color_x), sizeof(init_color_x), ZCL_UINT16_T},              // CurrentX
-    {ATTR_CURRENT_Y, const_cast<uint8_t *>(init_color_y), sizeof(init_color_y), ZCL_UINT16_T},              // CurrentY
-    {ATTR_CURRENT_CT_MRDS, const_cast<uint8_t *>(two_zero_byte), sizeof(two_zero_byte), ZCL_UINT16_T, 0x01} // ColorTemperatureMireds, (Make this constant, since we don't use)
+    {ATTR_CURRENT_X, const_cast<uint8_t *>(init_color_x), sizeof(init_color_x), ZCL_UINT16_T}, // CurrentX
+    {ATTR_CURRENT_Y, const_cast<uint8_t *>(init_color_y), sizeof(init_color_y), ZCL_UINT16_T}, // CurrentY
+// {ATTR_CURRENT_CT_MRDS, const_cast<uint8_t *>(two_zero_byte), sizeof(two_zero_byte), ZCL_UINT16_T, 0x01}, // ColorTemperatureMireds, (Make this constant, since we don't use)
+    {ATTR_COLOR_CAP, const_cast<uint8_t *>(color_cap), sizeof(color_cap), ZCL_MAP16, 0x01},
+    {ATTR_COLOR_MODE, const_cast<uint8_t *>(color_mode), sizeof(color_mode), ZCL_ENUM8, 0x01},
+    {ATTR_COLOR_OPT, const_cast<uint8_t *>(color_options), sizeof(color_options), ZCL_MAP8, 0x01},
+    {ATTR_ENH_COLOR_MODE, const_cast<uint8_t *>(enh_color_mode), sizeof(enh_color_mode), ZCL_ENUM8, 0x01},
 };
 attribute lbed_analog_in_attr[] = {
     {BINARY_PV_ATTR, const_cast<uint8_t *>(four_zero_byte), sizeof(four_zero_byte), ZCL_SINGLE}, // present value
     binary_status_flag,
     out_of_service,
     eng_unit_volts_attr,
-    min_pv_attr,
+    //min_pv_attr,
     // max_pv_attr
 };
 attribute lbed_analog_out_attr[] = {
@@ -83,7 +90,7 @@ attribute lbed_analog_out_attr[] = {
     out_of_service,
     resolution_attr,
     eng_unit_volts_attr,
-    min_pv_attr,
+    //min_pv_attr,
     // max_pv_attr
 };
 attribute rbed_analog_in_attr[] = {
@@ -91,7 +98,7 @@ attribute rbed_analog_in_attr[] = {
     binary_status_flag,
     out_of_service,
     eng_unit_volts_attr,
-    min_pv_attr,
+    //min_pv_attr,
     // max_pv_attr
 };
 attribute rbed_analog_out_attr[] = {
@@ -99,7 +106,7 @@ attribute rbed_analog_out_attr[] = {
     out_of_service,
     resolution_attr,
     eng_unit_volts_attr,
-    min_pv_attr,
+    //min_pv_attr,
     // max_pv_attr
 };
 
