@@ -18,10 +18,7 @@ constexpr uint8_t enh_color_mode[] = {0x01};
 
 // Reuse these to save SRAM
 constexpr char manufacturer[] = "iSilentLLC";
-constexpr char lbed_model[] = "Left";
-constexpr char rbed_model[] = "Right";
-constexpr char temp_model[] = "Temp";
-constexpr char light_model[] = "MasterBed Light";
+constexpr char light_model[] = "MasterBed Light Controller";
 
 attribute BuildStringAtt(uint16_t a_id, char *value, uint8_t size, uint8_t a_type)
 {
@@ -30,9 +27,6 @@ attribute BuildStringAtt(uint16_t a_id, char *value, uint8_t size, uint8_t a_typ
 }
 
 attribute manuf_attr = BuildStringAtt(MANUFACTURER_ATTR, const_cast<char *>(manufacturer), sizeof(manufacturer), ZCL_CHAR_STR);
-attribute lbed_model_attr = BuildStringAtt(MODEL_ATTR, const_cast<char *>(lbed_model), sizeof(lbed_model), ZCL_CHAR_STR);
-attribute rbed_model_attr = BuildStringAtt(MODEL_ATTR, const_cast<char *>(rbed_model), sizeof(rbed_model), ZCL_CHAR_STR);
-attribute temp_model_attr = BuildStringAtt(MODEL_ATTR, const_cast<char *>(temp_model), sizeof(temp_model), ZCL_CHAR_STR);
 attribute light_model_attr = BuildStringAtt(MODEL_ATTR, const_cast<char *>(light_model), sizeof(light_model), ZCL_CHAR_STR);
 attribute resolution_attr = attribute(RESOLUTION_ATTR, const_cast<uint8_t *>(v_res), sizeof(v_res), ZCL_SINGLE, 0x01); // Resolution (0.01v)
 attribute eng_unit_volts_attr = attribute(ENG_UNITS_ATTR, const_cast<uint8_t *>(bac_net_volts), sizeof(bac_net_volts), ZCL_ENUM16, 0x01);
@@ -46,24 +40,15 @@ attribute out_of_service = attribute(OUT_OF_SERVICE, const_cast<uint8_t *>(one_z
 // const attribute max_pv_attr = attribute(MAX_PV_ATTR, max_v, sizeof(max_v), ZCL_SINGLE, 0x01); // 3.3v
 //attribute min_pv_attr = attribute(MIN_PV_ATTR, const_cast<uint8_t *>(four_zero_byte), sizeof(four_zero_byte), ZCL_SINGLE, 0x01); // 0.0v
 
-attribute lbed_basic_attr[]{
+attribute light_basic_attr[]{
     manuf_attr,
-    lbed_model_attr};
-attribute rbed_basic_attr[]{
-    manuf_attr,
-    rbed_model_attr};
-attribute temp_basic_attr[]{
-    manuf_attr,
-    temp_model_attr};
+    light_model_attr};
 attribute lbed_occupied_attr[] = {
     {BINARY_PV_ATTR, const_cast<uint8_t *>(one_zero_byte), sizeof(one_zero_byte), ZCL_BOOL}, // present value
     binary_status_flag};
 attribute rbed_occupied_attr[] = {
     {BINARY_PV_ATTR, const_cast<uint8_t *>(one_zero_byte), sizeof(one_zero_byte), ZCL_BOOL}, // present value
     binary_status_flag};
-attribute light_basic_attr[]{
-    manuf_attr,
-    light_model_attr};
 attribute light_bool_attr[]{
     {CURRENT_STATE, const_cast<uint8_t *>(one_zero_byte), sizeof(one_zero_byte), ZCL_BOOL}};
 attribute light_level_attr[]{
@@ -71,7 +56,6 @@ attribute light_level_attr[]{
 attribute light_color_attr[] = {
     {ATTR_CURRENT_X, const_cast<uint8_t *>(init_color_x), sizeof(init_color_x), ZCL_UINT16_T}, // CurrentX
     {ATTR_CURRENT_Y, const_cast<uint8_t *>(init_color_y), sizeof(init_color_y), ZCL_UINT16_T}, // CurrentY
-// {ATTR_CURRENT_CT_MRDS, const_cast<uint8_t *>(two_zero_byte), sizeof(two_zero_byte), ZCL_UINT16_T, 0x01}, // ColorTemperatureMireds, (Make this constant, since we don't use)
     {ATTR_COLOR_CAP, const_cast<uint8_t *>(color_cap), sizeof(color_cap), ZCL_MAP16, 0x01},
     {ATTR_COLOR_MODE, const_cast<uint8_t *>(color_mode), sizeof(color_mode), ZCL_ENUM8, 0x01},
     {ATTR_COLOR_OPT, const_cast<uint8_t *>(color_options), sizeof(color_options), ZCL_MAP8, 0x01},
@@ -114,17 +98,14 @@ attribute temp_attr[] = {{CURRENT_STATE, const_cast<uint8_t *>(two_zero_byte), s
 attribute humid_attr[] = {{CURRENT_STATE, const_cast<uint8_t *>(two_zero_byte), sizeof(two_zero_byte), ZCL_UINT16_T}};
 
 Cluster lbed_occupied_in_clusters[] = {
-    Cluster(BASIC_CLUSTER_ID, lbed_basic_attr, sizeof(lbed_basic_attr) / sizeof(*lbed_basic_attr)),
     Cluster(BINARY_INPUT_CLUSTER_ID, lbed_occupied_attr, sizeof(lbed_occupied_attr) / sizeof(*lbed_occupied_attr)),
     Cluster(ANALOG_IN_CLUSTER_ID, lbed_analog_in_attr, sizeof(lbed_analog_in_attr) / sizeof(*lbed_analog_in_attr)),
     Cluster(ANALOG_OUT_CLUSTER_ID, lbed_analog_out_attr, sizeof(lbed_analog_out_attr) / sizeof(*lbed_analog_out_attr))};
 Cluster rbed_occupied_in_clusters[] = {
-    Cluster(BASIC_CLUSTER_ID, rbed_basic_attr, sizeof(rbed_basic_attr) / sizeof(*rbed_basic_attr)),
     Cluster(BINARY_INPUT_CLUSTER_ID, rbed_occupied_attr, sizeof(rbed_occupied_attr) / sizeof(*rbed_occupied_attr)),
     Cluster(ANALOG_IN_CLUSTER_ID, rbed_analog_in_attr, sizeof(rbed_analog_in_attr) / sizeof(*rbed_analog_in_attr)),
     Cluster(ANALOG_OUT_CLUSTER_ID, rbed_analog_out_attr, sizeof(rbed_analog_out_attr) / sizeof(*rbed_analog_out_attr))};
 Cluster t_in_clusters[] = {
-    Cluster(BASIC_CLUSTER_ID, temp_basic_attr, sizeof(temp_basic_attr) / sizeof(*temp_basic_attr)),
     Cluster(TEMP_CLUSTER_ID, temp_attr, sizeof(temp_attr) / sizeof(*temp_attr)),
     Cluster(HUMIDITY_CLUSTER_ID, humid_attr, sizeof(humid_attr) / sizeof(*humid_attr))};
 Cluster light_in_clusters[] = {
